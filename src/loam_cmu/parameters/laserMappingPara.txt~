@@ -1,0 +1,23 @@
+# 这是一个参数文件
+# 去你妹的yaml！我再也不用yaml了！简简单单多好！
+# laserMapping 例程的参数
+
+# laser mapping takes place in every skipFrameNum frames
+skipFrameNum=2
+
+# map update every mapSkipFrameNum*skipFrameNum frames
+mapSkipFrameNum=5
+
+# the central cube position of current frame
+laserCloudCenWidth=10
+laserCloudCenHeight=5
+laserCloudCenDepth=10
+laserCloudWidth=21
+laserCloudHeight=11
+laserCloudDepth=21
+
+# the local is devided into cubes, each is of size cubeSize*cubeSize*cubeSize in m
+cubeSize=50.0
+
+# the query neighbor cube num, in finding overlapped cubes
+queryNeighborCubeNum=2

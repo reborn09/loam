@@ -1,0 +1,11 @@
+<launch>
+
+  <node pkg="loam_cmu" type="scanRegistration_cmu" name="scanRegistration_cmu" output="screen"/>
+  <node pkg="loam_cmu" type="laserOdometry_cmu" name="laserOdometry_cmu" output="screen"/>
+  <node pkg="loam_cmu" type="laserMapping_cmu" name="laserMapping_cmu" output="screen"/>
+  <node pkg="loam_cmu" type="transformMaintenance_cmu" name="transformMaintenance_cmu" output="screen"/>
+  <node pkg="loam_cmu" type="poseGraphOptimization_cmu" name="poseGraphOptimization_cmu" output="screen"/>
+
+  <node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find loam_cmu)/loam_cmu.rviz"/>
+
+</launch>

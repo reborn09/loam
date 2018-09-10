@@ -1,0 +1,62 @@
+# 这是一个参数文件
+# 去你妹的yaml！我再也不用yaml了！简简单单多好！
+
+# 点云数据发布例程的参数，主要是起始跟结束的帧号
+# 注意，参数格式为 [参数名]=数字，没有空格，没有其他多余字符
+##########################
+# 帧号步进
+frameStep=1
+
+# 帧率, Hz
+frequency=10
+
+
+######### 数据源 #########
+##########################
+# 测试场数据
+#base_dir=/root/ZJUALV/DATA
+#folder=0816_1740
+#startFrameNo=0
+#endFrameNo=10000
+
+
+##########################
+# 塔河建图数据 0~5178
+#base_dir=/root/ZJUALV/DATA
+#folder=0904_1557
+#startFrameNo=2700
+#endFrameNo=4739
+
+
+##########################
+# 玉泉建图数据
+base_dir=/root/ZJUALV/DATA/Lidar_SLAM_DATA
+folder=1028_0704
+
+# 闭环1：绕教八一圈 10825 ~ 12000
+startFrameNo=10820
+endFrameNo=11733
+
+# 闭环2：毛像到校门口一圈 2202-2904
+#startFrameNo=2182
+#endFrameNo=4650
+
+# 闭环3：三四舍之间快递点
+#startFrameNo=4977
+#endFrameNo=5551
+
+# 闭环4：三四舍-北门-留食-三、四舍
+#startFrameNo=5705
+#endFrameNo=7554
+
+# 闭环5：图书馆门口
+#startFrameNo=1010
+#endFrameNo=1810
+
+# 布吉岛
+#startFrameNo=8000
+#endFrameNo=11733
+
+# 曹光彪楼
+#startFrameNo=8145
+#endFrameNo=11000

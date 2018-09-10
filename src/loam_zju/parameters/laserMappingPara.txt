@@ -1,0 +1,36 @@
+# 这是一个参数文件
+# 去你妹的yaml！我再也不用yaml了！简简单单多好！
+# laserMapping 进程的参数
+
+# laserMapping takes place in every skipFrameNum frames
+skipFrameNum=3
+
+# map updates every mapSkipFrameNum*skipFrameNum frames
+mapSkipFrameNum=2
+
+# the central cube position of current frame
+laserCloudCenWidth=10
+laserCloudCenHeight=5
+laserCloudCenDepth=10
+#laserCloudCenWidth=40
+#laserCloudCenHeight=40
+#laserCloudCenDepth=5
+
+# how many cubes is there in the map
+laserCloudWidth=21
+laserCloudHeight=11
+laserCloudDepth=21
+#laserCloudWidth=81
+#laserCloudHeight=81
+#laserCloudDepth=21
+
+# the local is devided into cubes, each is of size cubeSize*cubeSize*cubeSize in m
+cubeSize=50.0
+
+# the query neighbor cube num, in finding overlapped cubes
+queryNeighborCubeNum=2
+
+# 用于voxel降采样的leaf大小
+cornerLeafSize=0.2
+surfLeafSize=0.3
+mapLeafSize=0.4

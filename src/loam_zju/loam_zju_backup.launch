@@ -1,0 +1,10 @@
+<launch>
+
+  <node pkg="loam_zju" type="scanRegistration_zju" name="scanRegistration_zju" output="screen"/>
+  <node pkg="loam_zju" type="laserOdometry_zju" name="laserOdometry_zju" output="screen"/>
+  <node pkg="loam_zju" type="laserMapping_zju" name="laserMapping_zju" output="screen"/>
+  <node pkg="loam_zju" type="transformMaintenance_zju" name="transformMaintenance_zju" output="screen"/>
+  <node pkg="loam_zju" type="poseGraphOptimization_zju" name="poseGraphOptimization_zju" output="screen"/>
+  <node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find loam_zju)/loam_zju.rviz"/>
+
+</launch>

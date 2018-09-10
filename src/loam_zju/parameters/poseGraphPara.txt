@@ -1,0 +1,49 @@
+# 这是一个参数文件
+# poseGraphOptimization 例程的参数
+# 参数格式：“参数名”=“参数值”，注意不可以有多余空格
+
+# rotationThres表示相邻帧如果角度变化超过该阈值，则认为该帧匹配无效
+rotationThres=0.5
+
+# neighborSize 表示每个pose跟临近左右各neighborSize个pose建立edge联系
+neighborSize=10
+
+# loopClosureSqDisThs = loop clousure Squared Distance Threshold，当两个pose的xyz距离平方小于此值即认为闭环
+loopClosureSqDisThs=25.0
+
+##########   icp相关参数   ##########
+  # 查找配对点的距离上限
+MaxCorrespondenceDistance=5.0
+  # 一般取 1e-10
+TransformationEpsilon=0.0000000001
+  # 也是阈值
+EuclideanFitnessEpsilon=0.0001
+  # 最大迭代次数
+MaximumIterations=300
+
+##########    ndt相关参数   ##########
+  # 为终止条件设置最小转换差异
+NDTtransformEpsilon=0.01
+  # 为More-Thuente线搜索设置最大步长
+NDTStepSize=0.2
+  # 设置ndt网格结构的分辨率
+NDTResolution=0.3
+  # 设置匹配迭代最大次数
+NDTMaxIterNum=35
+
+##########   g2o相关参数   ##########
+	# 是否使用g2o优化,0表示不优化，非0表示需要优化
+g2oOpen=0
+	# g2o优化迭代次数
+OptimizationSteps=30
+	# 信息矩阵中变量的确定度
+confidence=50
+	# 没有数据时，等待多长时间开始优化
+WaitTime=4
+	# 是否加入闭环
+addLoopClousure=0
+
+
+
+# 显示相关参数
+MaxBeamForShow=32
