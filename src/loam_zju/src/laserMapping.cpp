@@ -386,7 +386,6 @@ int main(int argc, char** argv)
   pcl::VoxelGrid<pcl::PointXYZI> downSizeFilterMap;
   downSizeFilterMap.setLeafSize(mapLeafSize, mapLeafSize, mapLeafSize);     // mapLeafSize is by default 0.6
 
-
   struct timeval t_start, t_end;
   int frameCount = skipFrameNum - 1;
   int mapFrameCount = mapSkipFrameNum - 1;
@@ -1019,7 +1018,7 @@ int main(int argc, char** argv)
         }
 
          // 3.3 add key points to map
-          // 3.3.1 add corner points
+         // 3.3.1 add corner points
         for (int i = 0; i < laserCloudCornerStackNum; i++)
         {
           projectToMapCoordinate(&laserCloudCornerStack->points[i], &pointSel);
