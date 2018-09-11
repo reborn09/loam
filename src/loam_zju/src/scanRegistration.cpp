@@ -25,28 +25,14 @@
 #include <pcl/filters/voxel_grid.h> // 过滤算法
 #include <pcl/kdtree/kdtree_flann.h> // K-D TREE查找算法
 
-//#define Laser16_enable
-
 using namespace std;
 
 pcl::PointCloud<pcl::PointXYZI>::Ptr laserCloud32(new pcl::PointCloud<pcl::PointXYZI>());	// float x, float y, float z, float intensity
-pcl::PointCloud<pcl::PointXYZI>::Ptr laserCloud16Left(new pcl::PointCloud<pcl::PointXYZI>());
-pcl::PointCloud<pcl::PointXYZI>::Ptr laserCloud16Right(new pcl::PointCloud<pcl::PointXYZI>());
 // laser 32
 pcl::PointCloud<pcl::PointXYZI>::Ptr cornerPointsSharp32(new pcl::PointCloud<pcl::PointXYZI>());	// 急拐角点
 pcl::PointCloud<pcl::PointXYZI>::Ptr cornerPointsLessSharp32(new pcl::PointCloud<pcl::PointXYZI>());	// 不那么急的拐角点
 pcl::PointCloud<pcl::PointXYZI>::Ptr surfPointsFlat32(new pcl::PointCloud<pcl::PointXYZI>());	// 平滑面点
 pcl::PointCloud<pcl::PointXYZI>::Ptr surfPointsLessFlat32(new pcl::PointCloud<pcl::PointXYZI>());	// 实际上是surfPointsFlat降采样得到的集合
-// laser16 left
-pcl::PointCloud<pcl::PointXYZI>::Ptr cornerPointsSharp16Left(new pcl::PointCloud<pcl::PointXYZI>());
-pcl::PointCloud<pcl::PointXYZI>::Ptr cornerPointsLessSharp16Left(new pcl::PointCloud<pcl::PointXYZI>());
-pcl::PointCloud<pcl::PointXYZI>::Ptr surfPointsFlat16Left(new pcl::PointCloud<pcl::PointXYZI>());
-pcl::PointCloud<pcl::PointXYZI>::Ptr surfPointsLessFlat16Left(new pcl::PointCloud<pcl::PointXYZI>());
-// laser16 right
-pcl::PointCloud<pcl::PointXYZI>::Ptr cornerPointsSharp16Right(new pcl::PointCloud<pcl::PointXYZI>());
-pcl::PointCloud<pcl::PointXYZI>::Ptr cornerPointsLessSharp16Right(new pcl::PointCloud<pcl::PointXYZI>());
-pcl::PointCloud<pcl::PointXYZI>::Ptr surfPointsFlat16Right(new pcl::PointCloud<pcl::PointXYZI>());
-pcl::PointCloud<pcl::PointXYZI>::Ptr surfPointsLessFlat16Right(new pcl::PointCloud<pcl::PointXYZI>());
 
 pcl::PointCloud<pcl::PointXYZI>::Ptr surfPointsLessFlatScan(new pcl::PointCloud<pcl::PointXYZI>()); // 用于surfPointsFlat降采样
 pcl::PointCloud<pcl::PointXYZI>::Ptr surfPointsLessFlatScanDS(new pcl::PointCloud<pcl::PointXYZI>()); // 用于surfPointsFlat降采样
@@ -58,150 +44,11 @@ ros::Publisher* pubSurfPointsFlatPointer;
 ros::Publisher* pubSurfPointsLessFlatPointer;
 
 bool newLidar32 = false;
-bool newLidar16Left =false;
-bool newLidar16Right = false;
 int timeLidar32;
-int timeLidar16Left;
-int timeLidar16Right;
 std_msgs::Header Lidar32Header;
-std_msgs::Header Lidar16LeftHeader;
-std_msgs::Header Lidar16RightHeader;
 
-const int MAX_POINTNUM64 = 120000;
 const int MAX_POINTNUM32 = 60000;
-const int MAX_POINTNUM16L = 20000;
-const int MAX_POINTNUM16R = 20000;
 const int WAIT_FRAME_NUM = 20;   // WARNNING: wait 5 frames for system initialization, otherwise laserOdometry will crash, don't know why, fuck!
-
-struct EXTRINSIC_PARA
-{
-  EXTRINSIC_PARA()
-  {
-    R[0][0] = 1.0; R[0][1] = 0.0; R[0][2] = 0.0;
-    R[1][0] = 0.0; R[1][1] = 1.0; R[1][2] = 0.0;
-    R[2][0] = 0.0; R[2][1] = 0.0; R[2][2] = 1.0;
-    T[0] = 0.0; T[1] = 0.0;  T[2] = 0.0;
-  }
-  float R[3][3];
-  float T[3];
-};
-
-void init_lidar16_para(EXTRINSIC_PARA &lidar16ExParaLeft, EXTRINSIC_PARA &lidar16ExParaRight)
-{
-    string lidar16para_L_filename = "/root/ZJUALV/bin/parameters/lidar16para_L.ini";
-    string lidar16para_R_filename = "/root/ZJUALV/bin/parameters/lidar16para_R.ini";
-    ifstream infile;
-    stringstream sline;
-    string line;
-
-    // left
-    infile.open(lidar16para_L_filename, ios::in);
-    if(!infile)
-    {
-        cout<<"***Error: can't open vlp16-L para file \""<<lidar16para_L_filename<<"\""<<endl;
-        return;
-    }
-
-    sline.str("");
-    sline.clear();
-    line.clear();
-    while(std::getline(infile, line))
-    {
-        if(line.empty())
-            continue;
-        if(line[0] == '#')      // '#' means comment
-            continue;
-        if(line[0] == '[')      // '[' means this is a flag line
-        {
-            string flag;
-            for(auto c : line)
-            {
-                if(c != '[' && c != ']' && c != '\\')
-                    flag = flag + c;
-                if(c == '\\')
-                    break;
-            }
-            if(flag == "Rotation")
-            {
-                for(int i=0; i<3; i++)
-                {
-                    line.clear();
-                    std::getline(infile, line);
-                    sline.str("");  // remember to clear!!!!!
-                    sline.clear();
-                    sline<<line;
-                    sline>>lidar16ExParaLeft.R[i][0]>>lidar16ExParaLeft.R[i][1]>>lidar16ExParaLeft.R[i][2];
-                }
-            }
-            else if(flag == "Translation")
-            {
-                line.clear();
-                std::getline(infile, line);
-                sline.str("");  // remember to clear!!!!!
-                sline.clear();
-                sline<<line;
-                sline>>lidar16ExParaLeft.T[0]>>lidar16ExParaLeft.T[1]>>lidar16ExParaLeft.T[2];
-                break;
-            }
-        }
-        line.clear();
-    }
-    infile.close();
-
-    // right
-    infile.open(lidar16para_R_filename, ios::in);
-    if(!infile)
-    {
-        cout<<"***Error: can't open vlp16-R para file \""<<lidar16para_R_filename<<"\""<<endl;
-        return;
-    }
-
-    sline.str("");
-    sline.clear();
-    line.clear();
-    while(std::getline(infile, line))
-    {
-        if(line.empty())
-            continue;
-        if(line[0] == '#')      // '#' means comment
-            continue;
-        if(line[0] == '[')      // '[' means this is a flag line
-        {
-            string flag;
-            for(auto c : line)
-            {
-                if(c != '[' && c != ']' && c != '\\')
-                    flag = flag + c;
-                if(c == '\\')
-                    break;
-            }
-            if(flag == "Rotation")
-            {
-                for(int i=0; i<3; i++)
-                {
-                    line.clear();
-                    std::getline(infile, line);
-                    sline.str("");  // remember to clear!!!!!
-                    sline.clear();
-                    sline<<line;
-                    sline>>lidar16ExParaRight.R[i][0]>>lidar16ExParaRight.R[i][1]>>lidar16ExParaRight.R[i][2];
-                }
-            }
-            else if(flag == "Translation")
-            {
-                line.clear();
-                std::getline(infile, line);
-                sline.str("");  // remember to clear!!!!!
-                sline.clear();
-                sline<<line;
-                sline>>lidar16ExParaRight.T[0]>>lidar16ExParaRight.T[1]>>lidar16ExParaRight.T[2];
-            }
-
-        }
-        line.clear();
-    }
-    infile.close();
-}
 
 void laserCloud32Handler(const sensor_msgs::PointCloud2ConstPtr& laserCloud32In)
 {
@@ -214,31 +61,6 @@ void laserCloud32Handler(const sensor_msgs::PointCloud2ConstPtr& laserCloud32In)
   pcl::removeNaNFromPointCloud(*laserCloud32,*laserCloud32, indices);
   newLidar32= true;
 }
-
-void laserCloud16LeftHandler(const sensor_msgs::PointCloud2ConstPtr& laserCloud16LIn)
-{
-  timeLidar16Left = laserCloud16LIn->header.stamp.toSec();
-  Lidar16LeftHeader = laserCloud16LIn->header;
-  laserCloud16Left->clear();
-
-  pcl::fromROSMsg(*laserCloud16LIn, *laserCloud16Left);
-  std::vector<int> indices;
-  pcl::removeNaNFromPointCloud(*laserCloud16Left,*laserCloud16Left, indices);
-  newLidar16Left = true;
-}
-
-void laserCloud16RightHandler(const sensor_msgs::PointCloud2ConstPtr& laserCloud16RIn)
-{
-  timeLidar16Right = laserCloud16RIn->header.stamp.toSec();
-  Lidar16RightHeader = laserCloud16RIn->header;
-  laserCloud16Right->clear();
-
-  pcl::fromROSMsg(*laserCloud16RIn, *laserCloud16Right);
-  std::vector<int> indices;
-  pcl::removeNaNFromPointCloud(*laserCloud16Right,*laserCloud16Right, indices);
-  newLidar16Right= true;
-}
-
 
 //////////////////////////////////////////////////////////////////////////////////////
 /// \brief ExtractKeyPoints
@@ -529,26 +351,6 @@ void ExtractKeyPoints(pcl::PointCloud<pcl::PointXYZI>::Ptr &laserCloud,
   }
 }
 
-
-//////////////////////////////////////////////////////////////////////////////////////
-/// \brief ProjectPoints
-/// \param laserCloud
-/// \param exPara
-//////////////////////////////////////////////////////////////////////////////////////
-void ProjectPoints(pcl::PointCloud<pcl::PointXYZI>::Ptr &laserCloud,
-                     const EXTRINSIC_PARA &exPara)
-{
-  int cloudNum = laserCloud->points.size();
-  for(int i = 0; i < cloudNum; i++)
-  {
-    pcl::PointXYZI tmp = laserCloud->points[i];
-    laserCloud->points[i].x = (exPara.R[0][0] * tmp.x * 100.0 + exPara.R[0][1] * tmp.y * 100.0 + exPara.R[0][2] * tmp.z * 100.0 + exPara.T[0]) / 100.0;
-    laserCloud->points[i].y = (exPara.R[1][0] * tmp.x * 100.0 + exPara.R[1][1] * tmp.y * 100.0 + exPara.R[1][2] * tmp.z * 100.0 + exPara.T[1]) / 100.0;
-    laserCloud->points[i].z = (exPara.R[2][0] * tmp.x * 100.0 + exPara.R[2][1] * tmp.y * 100.0 + exPara.R[2][2] * tmp.z * 100.0 + exPara.T[2]) / 100.0;
-    laserCloud->points[i].intensity = tmp.intensity;
-  }
-}
-
 //////////////////////////////////////////////////////////////////////////////////////
 /// \brief main
 /// \param argc
@@ -561,18 +363,10 @@ int main(int argc, char** argv)
   ros::init(argc, argv, "scanRegistration");
   ros::NodeHandle nh;
 
-  EXTRINSIC_PARA lidar16ExParaLeft, lidar16ExParaRight;
-  init_lidar16_para(lidar16ExParaLeft, lidar16ExParaRight);
-
   // declaration
   ros::Subscriber subLaserCloud = nh.subscribe<sensor_msgs::PointCloud2>	// 订阅velodyne_points话题，接收PointCloud2消息
                                   ("/velodyne_points", 2, laserCloud32Handler);
 
-  ros::Subscriber subLaserCloud16L = nh.subscribe<sensor_msgs::PointCloud2>
-                                  ("/lidar16_L_points", 2, laserCloud16LeftHandler);
-
-  ros::Subscriber subLaserCloud16R = nh.subscribe<sensor_msgs::PointCloud2>
-                                  ("/lidar16_R_points", 2, laserCloud16RightHandler);
     // lidar32
   ros::Publisher pubLaserCloud32 = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_32", 2);
 
@@ -587,33 +381,6 @@ int main(int argc, char** argv)
 
   ros::Publisher pubSurfPointsLessFlat32 = nh.advertise<sensor_msgs::PointCloud2>  // 发布弱面点
                                            ("/laser_cloud_less_flat_32", 2);
-    // lidar16 left
-  ros::Publisher pubLaserCloud16Left = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_16Left", 2);
-  ros::Publisher pubCornerPointsSharp16Left = nh.advertise<sensor_msgs::PointCloud2>	// 发布角点
-                                        ("/laser_cloud_sharp_16Left", 2);
-
-  ros::Publisher pubCornerPointsLessSharp16Left = nh.advertise<sensor_msgs::PointCloud2>  // 发布弱角点
-                                            ("/laser_cloud_less_sharp_16Left", 2);
-
-  ros::Publisher pubSurfPointsFlat16Left = nh.advertise<sensor_msgs::PointCloud2>  // 发布面点
-                                       ("/laser_cloud_flat_16Left", 2);
-
-  ros::Publisher pubSurfPointsLessFlat16Left = nh.advertise<sensor_msgs::PointCloud2>  // 发布弱面点
-                                           ("/laser_cloud_less_flat_16Left", 2);
-    // lidar16 right
-  ros::Publisher pubLaserCloud16Right = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_16Right", 2);
-  ros::Publisher pubCornerPointsSharp16Right = nh.advertise<sensor_msgs::PointCloud2>	// 发布角点
-                                        ("/laser_cloud_sharp_16Right", 2);
-
-  ros::Publisher pubCornerPointsLessSharp16Right = nh.advertise<sensor_msgs::PointCloud2>  // 发布弱角点
-                                            ("/laser_cloud_less_sharp_16Right", 2);
-
-  ros::Publisher pubSurfPointsFlat16Right = nh.advertise<sensor_msgs::PointCloud2>  // 发布面点
-                                       ("/laser_cloud_flat_16Right", 2);
-
-  ros::Publisher pubSurfPointsLessFlat16Right = nh.advertise<sensor_msgs::PointCloud2>  // 发布弱面点
-                                           ("/laser_cloud_less_flat_16Right", 2);
-
 
   struct timeval t_start, t_end;
   ros::Rate rate(100);
@@ -621,19 +388,10 @@ int main(int argc, char** argv)
   while (ros::ok())
   {
     ros::spinOnce();
-
-#ifdef Laser16_enable
-    if (newLidar32 && newLidar16Left && newLidar16Right &&
-        fabs(timeLidar16Left - timeLidar32) < 0.005 &&
-        fabs(timeLidar16Right - timeLidar32) < 0.005)
-#else
     if (newLidar32)
-#endif
     {
       gettimeofday(&t_start, NULL);
       newLidar32 = false;
-      newLidar16Left = false;
-      newLidar16Right = false;
       frameNo++;
 
       if(frameNo < WAIT_FRAME_NUM)
@@ -648,51 +406,11 @@ int main(int argc, char** argv)
       surfPointsFlat32->clear();
       surfPointsLessFlat32->clear();
 
-      cornerPointsSharp16Left->clear();
-      cornerPointsLessSharp16Left->clear();
-      surfPointsFlat16Left->clear();
-      surfPointsLessFlat16Left->clear();
-
-      cornerPointsSharp16Right->clear();
-      cornerPointsLessSharp16Right->clear();
-      surfPointsFlat16Right->clear();
-      surfPointsLessFlat16Right->clear();
-
-
-//      ExtractKeyPoints(laserCloud32, 64, 6, MAX_POINTNUM64,
-//                       cornerPointsSharp32, cornerPointsLessSharp32,
-//                       surfPointsFlat32, surfPointsLessFlat32);
-
       // extract key points
       ExtractKeyPoints(laserCloud32, 32, 6, MAX_POINTNUM32,
                        cornerPointsSharp32, cornerPointsLessSharp32,
                        surfPointsFlat32, surfPointsLessFlat32);
 
-//      ExtractKeyPoints(laserCloud32, 16, 6, MAX_POINTNUM32,
-//                       cornerPointsSharp32, cornerPointsLessSharp32,
-//                       surfPointsFlat32, surfPointsLessFlat32);
-
-
-#ifdef Laser16_enable
-      ExtractKeyPoints(laserCloud16Left, 16, 4, MAX_POINTNUM16L,
-                       cornerPointsSharp16Left, cornerPointsLessSharp16Left,
-                       surfPointsFlat16Left, surfPointsLessFlat16Left);
-      ExtractKeyPoints(laserCloud16Right, 16, 4, MAX_POINTNUM16R,
-                       cornerPointsSharp16Right, cornerPointsLessSharp16Right,
-                       surfPointsFlat16Right, surfPointsLessFlat16Right);
-
-        // calibration
-      ProjectPoints(laserCloud16Left, lidar16ExParaLeft);
-      ProjectPoints(cornerPointsSharp16Left, lidar16ExParaLeft);
-      ProjectPoints(cornerPointsLessSharp16Left, lidar16ExParaLeft);
-      ProjectPoints(surfPointsFlat16Left, lidar16ExParaLeft);
-      ProjectPoints(surfPointsLessFlat16Left, lidar16ExParaLeft);
-      ProjectPoints(laserCloud16Right, lidar16ExParaRight);
-      ProjectPoints(cornerPointsSharp16Right, lidar16ExParaRight);
-      ProjectPoints(cornerPointsLessSharp16Right, lidar16ExParaRight);
-      ProjectPoints(surfPointsFlat16Right, lidar16ExParaRight);
-      ProjectPoints(surfPointsLessFlat16Right, lidar16ExParaRight);
-#endif
       // publish
         // lidar32
       sensor_msgs::PointCloud2 laserCloud32Msg;
@@ -724,68 +442,6 @@ int main(int argc, char** argv)
       surfPointsLessFlat32Msg.header.stamp = Lidar32Header.stamp;
       surfPointsLessFlat32Msg.header.frame_id = "/camera";
       pubSurfPointsLessFlat32.publish(surfPointsLessFlat32Msg);
-
-        // lidar16Left
-      sensor_msgs::PointCloud2 laserCloud16LeftMsg;
-      pcl::toROSMsg(*laserCloud16Left, laserCloud16LeftMsg);
-      laserCloud16LeftMsg.header.stamp = Lidar32Header.stamp;
-      laserCloud16LeftMsg.header.frame_id = "/camera";
-      pubLaserCloud16Left.publish(laserCloud16LeftMsg);
-
-      sensor_msgs::PointCloud2 cornerPointsSharp16LeftMsg;
-      pcl::toROSMsg(*cornerPointsSharp16Left, cornerPointsSharp16LeftMsg);
-      cornerPointsSharp16LeftMsg.header.stamp = Lidar16LeftHeader.stamp;
-      cornerPointsSharp16LeftMsg.header.frame_id = "/camera";
-      pubCornerPointsSharp16Left.publish(cornerPointsSharp16LeftMsg);
-
-      sensor_msgs::PointCloud2 cornerPointsLessSharp16LeftMsg;
-      pcl::toROSMsg(*cornerPointsLessSharp16Left, cornerPointsLessSharp16LeftMsg);
-      cornerPointsLessSharp16LeftMsg.header.stamp = Lidar16LeftHeader.stamp;
-      cornerPointsLessSharp16LeftMsg.header.frame_id = "/camera";
-      pubCornerPointsLessSharp16Left.publish(cornerPointsLessSharp16LeftMsg);
-
-      sensor_msgs::PointCloud2 surfPointsFlat16LeftMsg;
-      pcl::toROSMsg(*surfPointsFlat16Left, surfPointsFlat16LeftMsg);
-      surfPointsFlat16LeftMsg.header.stamp = Lidar16LeftHeader.stamp;
-      surfPointsFlat16LeftMsg.header.frame_id = "/camera";
-      pubSurfPointsFlat16Left.publish(surfPointsFlat16LeftMsg);
-
-      sensor_msgs::PointCloud2 surfPointsLessFlat16LeftMsg;
-      pcl::toROSMsg(*surfPointsLessFlat16Left, surfPointsLessFlat16LeftMsg);
-      surfPointsLessFlat16LeftMsg.header.stamp = Lidar16LeftHeader.stamp;
-      surfPointsLessFlat16LeftMsg.header.frame_id = "/camera";
-      pubSurfPointsLessFlat16Left.publish(surfPointsLessFlat16LeftMsg);
-
-        // lidar16Right
-      sensor_msgs::PointCloud2 laserCloud16RightMsg;
-      pcl::toROSMsg(*laserCloud16Right, laserCloud16RightMsg);
-      laserCloud16RightMsg.header.stamp = Lidar32Header.stamp;
-      laserCloud16RightMsg.header.frame_id = "/camera";
-      pubLaserCloud16Right.publish(laserCloud16RightMsg);
-
-      sensor_msgs::PointCloud2 cornerPointsSharp16RightMsg;
-      pcl::toROSMsg(*cornerPointsSharp16Right, cornerPointsSharp16RightMsg);
-      cornerPointsSharp16RightMsg.header.stamp = Lidar16RightHeader.stamp;
-      cornerPointsSharp16RightMsg.header.frame_id = "/camera";
-      pubCornerPointsSharp16Right.publish(cornerPointsSharp16RightMsg);
-
-      sensor_msgs::PointCloud2 cornerPointsLessSharp16RightMsg;
-      pcl::toROSMsg(*cornerPointsLessSharp16Right, cornerPointsLessSharp16RightMsg);
-      cornerPointsLessSharp16RightMsg.header.stamp = Lidar16RightHeader.stamp;
-      cornerPointsLessSharp16RightMsg.header.frame_id = "/camera";
-      pubCornerPointsLessSharp16Right.publish(cornerPointsLessSharp16RightMsg);
-
-      sensor_msgs::PointCloud2 surfPointsFlat16RightMsg;
-      pcl::toROSMsg(*surfPointsFlat16Right, surfPointsFlat16RightMsg);
-      surfPointsFlat16RightMsg.header.stamp = Lidar16RightHeader.stamp;
-      surfPointsFlat16RightMsg.header.frame_id = "/camera";
-      pubSurfPointsFlat16Right.publish(surfPointsFlat16RightMsg);
-
-      sensor_msgs::PointCloud2 surfPointsLessFlat16RightMsg;
-      pcl::toROSMsg(*surfPointsLessFlat16Right, surfPointsLessFlat16RightMsg);
-      surfPointsLessFlat16RightMsg.header.stamp = Lidar16RightHeader.stamp;
-      surfPointsLessFlat16RightMsg.header.frame_id = "/camera";
-      pubSurfPointsLessFlat16Right.publish(surfPointsLessFlat16RightMsg);
 
       gettimeofday(&t_end, NULL);
 //      std::cout<<"scanRegistration consuming time: "<<(t_end.tv_sec - t_start.tv_sec)*1000.0

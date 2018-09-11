@@ -23,15 +23,10 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/kdtree/kdtree_flann.h>
 
-//#define SAVE_DATA
-
 const double PI = 3.1415926;
 
-const int MAX_POINTNUM64 = 120000;
 const int MAX_POINTNUM32 = 60000;
-const int MAX_POINTNUM16L = 20000;
-const int MAX_POINTNUM16R = 20000;
-const int PointMaxNum = MAX_POINTNUM32 + MAX_POINTNUM16L + MAX_POINTNUM16R;  // maximum number of points in a single point cloud
+const int PointMaxNum = MAX_POINTNUM32;  // maximum number of points in a single point cloud
 
 bool systemInited = false;
 
@@ -43,35 +38,11 @@ double timeCornerPointsLessSharp32 = 0;
 double timeSurfPointsFlat32 = 0;
 double timeSurfPointsLessFlat32 = 0;
 
-double timeLaserCloud16Left = 0;
-double timeCornerPointsSharp16Left = 0;
-double timeCornerPointsLessSharp16Left = 0;
-double timeSurfPointsFlat16Left = 0;
-double timeSurfPointsLessFlat16Left = 0;
-
-double timeLaserCloud16Right = 0;
-double timeCornerPointsSharp16Right = 0;
-double timeCornerPointsLessSharp16Right = 0;
-double timeSurfPointsFlat16Right = 0;
-double timeSurfPointsLessFlat16Right = 0;
-
 bool newLaserCloud32 = false;
 bool newCornerPointsSharp32 = false;
 bool newCornerPointsLessSharp32 = false;
 bool newSurfPointsFlat32 = false;
 bool newSurfPointsLessFlat32 = false;
-
-bool newLaserCloud16Left = false;
-bool newCornerPointsSharp16Left = false;
-bool newCornerPointsLessSharp16Left = false;
-bool newSurfPointsFlat16Left = false;
-bool newSurfPointsLessFlat16Left = false;
-
-bool newLaserCloud16Right = false;
-bool newCornerPointsSharp16Right = false;
-bool newCornerPointsLessSharp16Right = false;
-bool newSurfPointsFlat16Right = false;
-bool newSurfPointsLessFlat16Right = false;
 
   // keypoints from lidar32
 pcl::PointCloud<pcl::PointXYZI>::Ptr laserCloud32(new pcl::PointCloud<pcl::PointXYZI>());
@@ -79,18 +50,6 @@ pcl::PointCloud<pcl::PointXYZI>::Ptr cornerPointsSharp32(new pcl::PointCloud<pcl
 pcl::PointCloud<pcl::PointXYZI>::Ptr cornerPointsLessSharp32(new pcl::PointCloud<pcl::PointXYZI>());
 pcl::PointCloud<pcl::PointXYZI>::Ptr surfPointsFlat32(new pcl::PointCloud<pcl::PointXYZI>());
 pcl::PointCloud<pcl::PointXYZI>::Ptr surfPointsLessFlat32(new pcl::PointCloud<pcl::PointXYZI>());
-  // keypoints from lidar16 left
-pcl::PointCloud<pcl::PointXYZI>::Ptr laserCloud16Left(new pcl::PointCloud<pcl::PointXYZI>());
-pcl::PointCloud<pcl::PointXYZI>::Ptr cornerPointsSharp16Left(new pcl::PointCloud<pcl::PointXYZI>());
-pcl::PointCloud<pcl::PointXYZI>::Ptr cornerPointsLessSharp16Left(new pcl::PointCloud<pcl::PointXYZI>());
-pcl::PointCloud<pcl::PointXYZI>::Ptr surfPointsFlat16Left(new pcl::PointCloud<pcl::PointXYZI>());
-pcl::PointCloud<pcl::PointXYZI>::Ptr surfPointsLessFlat16Left(new pcl::PointCloud<pcl::PointXYZI>());
-  // keypoints from lidar16 right
-pcl::PointCloud<pcl::PointXYZI>::Ptr laserCloud16Right(new pcl::PointCloud<pcl::PointXYZI>());
-pcl::PointCloud<pcl::PointXYZI>::Ptr cornerPointsSharp16Right(new pcl::PointCloud<pcl::PointXYZI>());
-pcl::PointCloud<pcl::PointXYZI>::Ptr cornerPointsLessSharp16Right(new pcl::PointCloud<pcl::PointXYZI>());
-pcl::PointCloud<pcl::PointXYZI>::Ptr surfPointsFlat16Right(new pcl::PointCloud<pcl::PointXYZI>());
-pcl::PointCloud<pcl::PointXYZI>::Ptr surfPointsLessFlat16Right(new pcl::PointCloud<pcl::PointXYZI>());
   // point cloud truly used for odometry
 pcl::PointCloud<pcl::PointXYZI>::Ptr cornerPointsSharp(new pcl::PointCloud<pcl::PointXYZI>());
 pcl::PointCloud<pcl::PointXYZI>::Ptr cornerPointsLessSharp(new pcl::PointCloud<pcl::PointXYZI>());
@@ -266,140 +225,6 @@ void laserCloudLessFlat32Handler(const sensor_msgs::PointCloud2ConstPtr& surfPoi
 
   newSurfPointsLessFlat32 = true;
 }
-  // laser cloud handler for lidar16Left
-void laserCloud16LeftHandler(const sensor_msgs::PointCloud2ConstPtr& laserCloud16LeftMsg)
-{
-  timeLaserCloud16Left = laserCloud16LeftMsg->header.stamp.toSec();
-  laserCloud16Left->clear();
-  pcl::fromROSMsg(*laserCloud16LeftMsg, *laserCloud16Left);
-  newLaserCloud16Left = true;
-}
-void laserCloudSharp16LeftHandler(const sensor_msgs::PointCloud2ConstPtr& cornerPointsSharp2)
-{
-  timeCornerPointsSharp16Left = cornerPointsSharp2->header.stamp.toSec();
-
-  cornerPointsSharp16Left->clear();
-  pcl::fromROSMsg(*cornerPointsSharp2, *cornerPointsSharp16Left);
-
-  newCornerPointsSharp16Left = true;
-}
-void laserCloudLessSharp16LeftHandler(const sensor_msgs::PointCloud2ConstPtr& cornerPointsLessSharp2)
-{
-  timeCornerPointsLessSharp16Left = cornerPointsLessSharp2->header.stamp.toSec();
-
-  cornerPointsLessSharp16Left->clear();
-  pcl::fromROSMsg(*cornerPointsLessSharp2, *cornerPointsLessSharp16Left);
-
-  newCornerPointsLessSharp16Left = true;
-}
-void laserCloudFlat16LeftHandler(const sensor_msgs::PointCloud2ConstPtr& surfPointsFlat2)
-{
-  timeSurfPointsFlat16Left = surfPointsFlat2->header.stamp.toSec();
-
-  surfPointsFlat16Left->clear();
-  pcl::fromROSMsg(*surfPointsFlat2, *surfPointsFlat16Left);
-
-  newSurfPointsFlat16Left = true;
-}
-void laserCloudLessFlat16LeftHandler(const sensor_msgs::PointCloud2ConstPtr& surfPointsLessFlat2)
-{
-  timeSurfPointsLessFlat16Left = surfPointsLessFlat2->header.stamp.toSec();
-
-  surfPointsLessFlat16Left->clear();
-  pcl::fromROSMsg(*surfPointsLessFlat2, *surfPointsLessFlat16Left);
-
-  newSurfPointsLessFlat16Left = true;
-}
-// laser cloud handler for lidar16Right
-void laserCloud16RightHandler(const sensor_msgs::PointCloud2ConstPtr& laserCloud16RightMsg)
-{
-  timeLaserCloud16Right = laserCloud16RightMsg->header.stamp.toSec();
-  laserCloud16Right->clear();
-  pcl::fromROSMsg(*laserCloud16RightMsg, *laserCloud16Right);
-  newLaserCloud16Right = true;
-}
-void laserCloudSharp16RightHandler(const sensor_msgs::PointCloud2ConstPtr& cornerPointsSharp2)
-{
-  timeCornerPointsSharp16Right = cornerPointsSharp2->header.stamp.toSec();
-
-  cornerPointsSharp16Right->clear();
-  pcl::fromROSMsg(*cornerPointsSharp2, *cornerPointsSharp16Right);
-
-  newCornerPointsSharp16Right = true;
-}
-void laserCloudLessSharp16RightHandler(const sensor_msgs::PointCloud2ConstPtr& cornerPointsLessSharp2)
-{
-timeCornerPointsLessSharp16Right = cornerPointsLessSharp2->header.stamp.toSec();
-
-cornerPointsLessSharp16Right->clear();
-pcl::fromROSMsg(*cornerPointsLessSharp2, *cornerPointsLessSharp16Right);
-
-newCornerPointsLessSharp16Right = true;
-}
-void laserCloudFlat16RightHandler(const sensor_msgs::PointCloud2ConstPtr& surfPointsFlat2)
-{
-timeSurfPointsFlat16Right = surfPointsFlat2->header.stamp.toSec();
-
-surfPointsFlat16Right->clear();
-pcl::fromROSMsg(*surfPointsFlat2, *surfPointsFlat16Right);
-
-newSurfPointsFlat16Right = true;
-}
-void laserCloudLessFlat16RightHandler(const sensor_msgs::PointCloud2ConstPtr& surfPointsLessFlat2)
-{
-timeSurfPointsLessFlat16Right = surfPointsLessFlat2->header.stamp.toSec();
-
-surfPointsLessFlat16Right->clear();
-pcl::fromROSMsg(*surfPointsLessFlat2, *surfPointsLessFlat16Right);
-
-newSurfPointsLessFlat16Right = true;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////
-/// \brief SavePointCloud
-/// \param laserCloud
-/// \param filename
-//////////////////////////////////////////////////////////////////////////////////////
-void SavePointCloud(pcl::PointCloud<pcl::PointXYZI>::Ptr laserCloud, const std::string filename)
-{
-  std::fstream fileout;
-  fileout.open(filename, std::ios::out);
-  if(!fileout)
-  {
-      std::cerr<<"***Error: Can't open file \""<<filename<<"\""<<std::endl;
-      return;
-  }
-
-  const int pointNum = laserCloud->points.size();
-  for(int i=0; i<pointNum; i++)
-  {
-    fileout << laserCloud->points[i].x << " "
-            << laserCloud->points[i].y << " "
-            << laserCloud->points[i].z << " "
-            << laserCloud->points[i].z << " "
-            << (int)laserCloud->points[i].intensity << std::endl;
-  }
-
-  fileout.close();
-}
-
-void SaveTransform(const std::string filename)
-{
-  std::fstream fileout;
-  fileout.open(filename, std::ios::out);
-  if(!fileout)
-  {
-      std::cerr<<"***Error: Can't open file \""<<filename<<"\""<<std::endl;
-      return;
-  }
-
-  for(int i=0; i<6; i++)
-    fileout << transform[i] << " ";
-  fileout << std::endl;
-
-  fileout.close();
-}
-
 
 int main(int argc, char** argv)
 {
@@ -422,36 +247,6 @@ int main(int argc, char** argv)
 
   ros::Subscriber subSurfPointsLessFlat32 = nh.subscribe<sensor_msgs::PointCloud2>
                                           ("/laser_cloud_less_flat_32", 2, laserCloudLessFlat32Handler);
-    // lidar16 left
-  ros::Subscriber subLaserCloud16Left = nh.subscribe<sensor_msgs::PointCloud2>
-                                    ("/laser_cloud_16Left", 2, laserCloud16LeftHandler);
-
-  ros::Subscriber subCornerPointsSharp16Left = nh.subscribe<sensor_msgs::PointCloud2>
-                                         ("/laser_cloud_sharp_16Left", 2, laserCloudSharp16LeftHandler);
-
-  ros::Subscriber subCornerPointsLessSharp16Left = nh.subscribe<sensor_msgs::PointCloud2>
-                                             ("/laser_cloud_less_sharp_16Left", 2, laserCloudLessSharp16LeftHandler);
-
-  ros::Subscriber subSurfPointsFlat16Left = nh.subscribe<sensor_msgs::PointCloud2>
-                                      ("/laser_cloud_flat_16Left", 2, laserCloudFlat16LeftHandler);
-
-  ros::Subscriber subSurfPointsLessFlat16Left = nh.subscribe<sensor_msgs::PointCloud2>
-                                          ("/laser_cloud_less_flat_16Left", 2, laserCloudLessFlat16LeftHandler);
-    // lidar16 right
-  ros::Subscriber subLaserCloud16Right = nh.subscribe<sensor_msgs::PointCloud2>
-                                    ("/laser_cloud_16Right", 2, laserCloud16RightHandler);
-
-  ros::Subscriber subCornerPointsSharp16Right = nh.subscribe<sensor_msgs::PointCloud2>
-                                         ("/laser_cloud_sharp_16Right", 2, laserCloudSharp16RightHandler);
-
-  ros::Subscriber subCornerPointsLessSharp16Right = nh.subscribe<sensor_msgs::PointCloud2>
-                                             ("/laser_cloud_less_sharp_16Right", 2, laserCloudLessSharp16RightHandler);
-
-  ros::Subscriber subSurfPointsFlat16Right = nh.subscribe<sensor_msgs::PointCloud2>
-                                      ("/laser_cloud_flat_16Right", 2, laserCloudFlat16RightHandler);
-
-  ros::Subscriber subSurfPointsLessFlat16Right = nh.subscribe<sensor_msgs::PointCloud2>
-                                          ("/laser_cloud_less_flat_16Right", 2, laserCloudLessFlat16RightHandler);
 
   // publisher
   ros::Publisher pubLaserCloudCornerLast = nh.advertise<sensor_msgs::PointCloud2>
@@ -494,24 +289,12 @@ int main(int argc, char** argv)
     ros::spinOnce();    
 
     // 检查是否收到点云，且时间戳一致
-    if (newLaserCloud32 && newLaserCloud16Left && newLaserCloud16Right &&
+    if (newLaserCloud32 &&
         newCornerPointsSharp32 && newCornerPointsLessSharp32 && newSurfPointsFlat32 && newSurfPointsLessFlat32 &&
-        newCornerPointsSharp16Left && newCornerPointsLessSharp16Left && newSurfPointsFlat16Left && newSurfPointsLessFlat16Left &&
-        newCornerPointsSharp16Right && newCornerPointsLessSharp16Right && newSurfPointsFlat16Right && newSurfPointsLessFlat16Right &&
         fabs(timeLaserCloud32 - timeSurfPointsLessFlat32) < 0.005 &&
-        fabs(timeLaserCloud16Left - timeSurfPointsLessFlat32) < 0.005 &&
-        fabs(timeLaserCloud16Right - timeSurfPointsLessFlat32) < 0.005 &&
         fabs(timeCornerPointsSharp32 - timeSurfPointsLessFlat32) < 0.005 &&
         fabs(timeCornerPointsLessSharp32 - timeSurfPointsLessFlat32) < 0.005 &&
-        fabs(timeSurfPointsFlat32 - timeSurfPointsLessFlat32) < 0.005 &&
-        fabs(timeCornerPointsSharp16Left - timeSurfPointsLessFlat32) < 0.005 &&
-        fabs(timeCornerPointsLessSharp16Left - timeSurfPointsLessFlat32) < 0.005 &&
-        fabs(timeSurfPointsFlat16Left - timeSurfPointsLessFlat32) < 0.005 &&
-        fabs(timeSurfPointsLessFlat16Left - timeSurfPointsLessFlat32) < 0.005 &&
-        fabs(timeCornerPointsSharp16Right - timeSurfPointsLessFlat32) < 0.005 &&
-        fabs(timeCornerPointsLessSharp16Right - timeSurfPointsLessFlat32) < 0.005 &&
-        fabs(timeSurfPointsFlat16Right - timeSurfPointsLessFlat32) < 0.005 &&
-        fabs(timeSurfPointsLessFlat16Right - timeSurfPointsLessFlat32) < 0.005)
+        fabs(timeSurfPointsFlat32 - timeSurfPointsLessFlat32) < 0.005 )
     {
       gettimeofday(&t_start, NULL);
 
@@ -521,17 +304,6 @@ int main(int argc, char** argv)
       newSurfPointsFlat32 = false;
       newSurfPointsLessFlat32 = false;
 
-      newLaserCloud16Left = false;
-      newCornerPointsSharp16Left = false;
-      newCornerPointsLessSharp16Left = false;
-      newSurfPointsFlat16Left = false;
-      newSurfPointsLessFlat16Left = false;
-
-      newLaserCloud16Right = false;
-      newCornerPointsSharp16Right = false;
-      newCornerPointsLessSharp16Right = false;
-      newSurfPointsFlat16Right = false;
-      newSurfPointsLessFlat16Right = false;
       frameNo++;
 
       cornerPointsSharp->clear();
@@ -545,42 +317,26 @@ int main(int argc, char** argv)
 //      *surfPointsLessFlat += *surfPointsLessFlat32;
 
       *cornerPointsSharp += *cornerPointsSharp32;
-      *cornerPointsSharp += *cornerPointsSharp16Left;
-      *cornerPointsSharp += *cornerPointsSharp16Right;
       cornerPointsSharp->is_dense = false;
-      cornerPointsSharp->width = cornerPointsSharp32->points.size()
-                              + cornerPointsSharp16Left->points.size()
-                              + cornerPointsSharp16Right->points.size();
+      cornerPointsSharp->width = cornerPointsSharp32->points.size();
       cornerPointsSharp->height = 1;
       cornerPointsSharp->resize(cornerPointsSharp ->width * cornerPointsSharp->height);
 
       *cornerPointsLessSharp += *cornerPointsLessSharp32;
-      *cornerPointsLessSharp += *cornerPointsLessSharp16Left;
-      *cornerPointsLessSharp += *cornerPointsLessSharp16Right;
       cornerPointsSharp->is_dense = false;
-      cornerPointsLessSharp->width = cornerPointsLessSharp32->points.size()
-                              + cornerPointsLessSharp16Left->points.size()
-                              + cornerPointsLessSharp16Right->points.size();
+      cornerPointsLessSharp->width = cornerPointsLessSharp32->points.size();
       cornerPointsLessSharp->height = 1;
       cornerPointsLessSharp->resize(cornerPointsLessSharp->width * cornerPointsLessSharp->height);
 
       *surfPointsFlat += *surfPointsFlat32;
-      *surfPointsFlat += *surfPointsFlat16Left;
-      *surfPointsFlat += *surfPointsFlat16Right;
       cornerPointsSharp->is_dense = false;
-      surfPointsFlat->width = surfPointsFlat32->points.size()
-                              + surfPointsFlat16Left->points.size()
-                              + surfPointsFlat16Right->points.size();
+      surfPointsFlat->width = surfPointsFlat32->points.size();
       surfPointsFlat->height = 1;
       surfPointsFlat->resize(surfPointsFlat->width * surfPointsFlat->height);
 
       *surfPointsLessFlat += *surfPointsLessFlat32;
-      *surfPointsLessFlat += *surfPointsLessFlat16Left;
-      *surfPointsLessFlat += *surfPointsLessFlat16Right;
       cornerPointsSharp->is_dense = false;
-      surfPointsLessFlat->width = surfPointsLessFlat32->points.size()
-                              + surfPointsLessFlat16Left->points.size()
-                              + surfPointsLessFlat16Right->points.size();
+      surfPointsLessFlat->width = surfPointsLessFlat32->points.size();
       surfPointsLessFlat->height = 1;
       surfPointsLessFlat->resize(surfPointsLessFlat->width * surfPointsLessFlat->height);
 
@@ -993,7 +749,7 @@ int main(int argc, char** argv)
             matX.copyTo(matX2);
             matX = matP * matX2;
 
-            ROS_INFO ("laser odometry degenerate");
+            ROS_WARN ("laser odometry degenerate");
           }
 
           float sigma_0 = matX.at<float>(0, 0);
@@ -1024,7 +780,7 @@ int main(int argc, char** argv)
             break;
           }
 
-          //ROS_INFO ("iter: %d, deltaR: %f, deltaT: %f", iterCount, deltaR, deltaT);
+          ROS_INFO ("iter: %d, deltaR: %f, deltaT: %f", iterCount, deltaR, deltaT);
         }
 
         // step2. generate transformSum
@@ -1095,63 +851,6 @@ int main(int argc, char** argv)
           TransformToEnd(&surfPointsFlat->points[i], &surfPointsFlat->points[i]);
         }
       }
-
-#ifdef SAVE_DATA
-      // save point cloud & transform
-        // save points with distortion
-      std::stringstream ss;
-      std::string lidar32filename;
-      std::string lidar16filename_L;
-      std::string lidar16filename_R;
-      std::string transfoemfilename;
-      std::string subFolder = "Negative";
-      ss.str("");
-      ss.clear();
-      ss << "/root/LOAM_DataBag/ObjDetectionData/" << subFolder << "/" << frameNo << "_bef.txt";
-      ss >> lidar32filename;
-      ss.str("");
-      ss.clear();
-      ss << "/root/LOAM_DataBag/ObjDetectionData/" << subFolder << "/" << frameNo << "_L_bef.txt";
-      ss >> lidar16filename_L;
-      ss.str("");
-      ss.clear();
-      ss << "/root/LOAM_DataBag/ObjDetectionData/" << subFolder << "/" << frameNo << "_R_bef.txt";
-      ss >> lidar16filename_R;
-      SavePointCloud(laserCloud32, lidar32filename);
-      SavePointCloud(laserCloud16Left, lidar16filename_L);
-      SavePointCloud(laserCloud16Right, lidar16filename_R);
-        // distortion correction
-      int laserCloud32Num = laserCloud32->points.size();
-      int laserCloud16LeftNum = laserCloud16Left->points.size();
-      int laserCloud16RightNum = laserCloud16Right->points.size();
-      for(int i=0; i<laserCloud32Num; i++)
-        TransformToEnd(&laserCloud32->points[i], &laserCloud32->points[i]);
-      for(int i=0; i<laserCloud16LeftNum; i++)
-        TransformToEnd(&laserCloud16Left->points[i], &laserCloud16Left->points[i]);
-      for(int i=0; i<laserCloud16RightNum; i++)
-        TransformToEnd(&laserCloud16Right->points[i], &laserCloud16Right->points[i]);
-        // save points without distortion
-      ss.str("");
-      ss.clear();
-      ss << "/root/LOAM_DataBag/ObjDetectionData/" << subFolder << "/" << frameNo << "_aft.txt";
-      ss >> lidar32filename;
-      ss.str("");
-      ss.clear();
-      ss << "/root/LOAM_DataBag/ObjDetectionData/" << subFolder << "/" << frameNo << "_L_aft.txt";
-      ss >> lidar16filename_L;
-      ss.str("");
-      ss.clear();
-      ss << "/root/LOAM_DataBag/ObjDetectionData/" << subFolder << "/" << frameNo << "_R_aft.txt";
-      ss >> lidar16filename_R;
-      ss.str("");
-      ss.clear();
-      ss << "/root/LOAM_DataBag/ObjDetectionData/" << subFolder << "/" << frameNo << "_Transform.txt";
-      ss >> transfoemfilename;
-      SavePointCloud(laserCloud32, lidar32filename);
-      SavePointCloud(laserCloud16Left, lidar16filename_L);
-      SavePointCloud(laserCloud16Right, lidar16filename_R);
-      SaveTransform(transfoemfilename);
-#endif
 
       // 更新laserCloudSharpLast, laserCloudFlatLast, laserCloudCornerLast和laserCloudSurfLast以及相应的kd-tree
       pcl::PointCloud<pcl::PointXYZI>::Ptr laserCloudTemp = cornerPointsSharp;

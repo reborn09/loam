@@ -14,10 +14,10 @@ frequency=10
 ######### 数据源 #########
 ##########################
 # 测试场数据
-#base_dir=/root/ZJUALV/DATA
-#folder=0816_1740
-#startFrameNo=0
-#endFrameNo=10000
+base_dir=/root/ZJUALV/DATA
+folder=0816_1740
+startFrameNo=0
+endFrameNo=10000
 
 
 ##########################
@@ -30,12 +30,12 @@ frequency=10
 
 ##########################
 # 玉泉建图数据
-base_dir=/root/ZJUALV/DATA/Lidar_SLAM_DATA
-folder=1028_0704
+#base_dir=/root/ZJUALV/DATA/Lidar_SLAM_DATA
+#folder=1028_0704
 
 # 闭环1：绕教八一圈 10825 ~ 12000
-startFrameNo=10820
-endFrameNo=11733
+#startFrameNo=10820
+#endFrameNo=11733
 
 # 闭环2：毛像到校门口一圈 2202-2904
 #startFrameNo=2182

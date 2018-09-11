@@ -31,13 +31,10 @@
 #include "velodyne_points_publish/parameterReader.h"
 
 #define Laser32
-//#define Laser64_MODE
-//#define SAVE_PTS_FILE
 
 using namespace std;
-const int MAX_POINT_SIZE64 = 120000;
 const int MAX_POINT_SIZE32 = 60000;	// 最大的点云数量
-const int MAX_POINT_SIZE16 = 20000;
+
 // 用于退出循环的函数，关联 ctrl+'C'
 bool loop_done = false;  // flag indicating main loop is to terminate
 extern "C" void PointsParseLoop_quit(int sig);
@@ -55,8 +52,6 @@ int main(int argc, char **argv)
   cout<<"done."<<endl;
   ros::NodeHandle nh;
   ros::Publisher pub32 = nh.advertise<sensor_msgs::PointCloud2> ("/velodyne_points", 2);	// 声明一下将要在points这个topic上发布消息
-  ros::Publisher pub16_L = nh.advertise<sensor_msgs::PointCloud2> ("/lidar16_L_points", 2);	// 声明一下将要在points这个topic上发布消息
-  ros::Publisher pub16_R = nh.advertise<sensor_msgs::PointCloud2> ("/lidar16_R_points", 2);	// 声明一下将要在points这个topic上发布消息
 
   // parameter reader
   PARAMETER_READER parReader("/root/catkin_SLAM/src/velodyne_points_publish/parameters/velodyne_points_publish_para.txt");
@@ -117,8 +112,6 @@ int main(int argc, char **argv)
     // parse data
     stringstream ss;
     string lidar32filename;
-    string lidar16filename_L;
-    string lidar16filename_R;
     string imgfliename;
 
     ss.str("");
@@ -128,23 +121,12 @@ int main(int argc, char **argv)
     ss.str("");
     ss.clear();
 
-    ss << base_dir << "/LIDAR16_DATA/" << folder << "/" << frameNo[i] <<"-L.bin";
-    ss >> lidar16filename_L;
-    ss.str("");
-    ss.clear();
-
-    ss << base_dir << "/LIDAR16_DATA/" << folder << "/" << frameNo[i] <<"-R.bin";
-    ss >> lidar16filename_R;
-    ss.str("");
-    ss.clear();
-
     ss << base_dir << "/IMG_DATA/" << folder << "/ImgColor_" << frameNo[i] <<".jpg";
     ss >> imgfliename;
     ss.str("");
     ss.clear();
 
     pvelodyneParser->parse_lidar32_data(lidar32filename);
-    pvelodyneParser->parse_lidar16_data(lidar16filename_L, lidar16filename_R);
 
     // show color image
     colorimg = cv::imread(imgfliename);
@@ -158,27 +140,8 @@ int main(int argc, char **argv)
       cout << "No such image " << imgfliename << endl;
     }
 
-#ifdef SAVE_PTS_FILE
-    string lidar32asc;
-    ss.str("");
-    ss.clear();
-    ss << base_dir << "/ASC/" << frameNo[i] <<".asc";
-    ss >> lidar32asc;
-    pvelodyneParser->save_lidar32_txt(lidar32asc);
-    string lidar16asc_L, lidar16asc_R;
-    ss.str("");
-    ss.clear();
-    ss << base_dir << "/ASC/" << frameNo[i] <<"_L.asc";
-    ss >> lidar16asc_L;
-    ss.str("");
-    ss.clear();
-    ss << base_dir << "/ASC/" << frameNo[i] <<"_R.asc";
-    ss >> lidar16asc_R;
-    pvelodyneParser->save_lidar16_txt(lidar16asc_L, lidar16asc_R);
-#endif
-
     // 将点云存入pcl数据结构
-    pcl::PointCloud<pcl::PointXYZI> cloud32, cloud16_L, cloud16_R;
+    pcl::PointCloud<pcl::PointXYZI> cloud32;
     cloud32.width = MAX_POINT_SIZE32;			// 预设大一点的空间
     cloud32.height = 1;
     cloud32.is_dense = true;
@@ -245,92 +208,15 @@ int main(int argc, char **argv)
     cloud32.resize(cloud32.width*cloud32.height);	// 重新调整点云尺寸至真实值
     cout<<"cloud32 points size: "<<cloud32.points.size()<<endl;
 
-    // lidar16-L
-    cloud16_L.width = MAX_POINT_SIZE16;			// 预设大一点的空间
-    cloud16_L.height = 1;
-    cloud16_L.is_dense = true;
-    cloud16_L.resize(cloud16_L.width*cloud16_L.height);
-
-    num = 0;
-    PtNumExceed = false;
-    for(int beam = 0; beam < VLP16_BEAM_NUM; beam++)
-    {
-      if(PtNumExceed)
-        break;
-      for(int cnt = 0; cnt < VLP16_BEAM_POINTSIZE; cnt++)
-      {
-        if(pvelodyneParser->lidar16_pointcloud_L[beam][cnt].valid)
-        {
-          cloud16_L.points[num].x = pvelodyneParser->lidar16_pointcloud_L[beam][cnt].x/100.0;
-          cloud16_L.points[num].y = pvelodyneParser->lidar16_pointcloud_L[beam][cnt].y/100.0;
-          cloud16_L.points[num].z = pvelodyneParser->lidar16_pointcloud_L[beam][cnt].z/100.0;
-          cloud16_L.points[num].intensity = pvelodyneParser->lidar16_pointcloud_L[beam][cnt].intensity; // 解析时已经更新过intensity
-          num++;
-          if(num >= MAX_POINT_SIZE16)
-          {
-            PtNumExceed = true;
-            break;
-          }
-        }
-      }
-    }
-    cloud16_L.width = num;
-    cloud16_L.height = 1;
-    cloud16_L.resize(cloud16_L.width*cloud16_L.height);	// 重新调整点云尺寸至真实值
-    cout<<"cloud16_L points size: "<<cloud16_L.points.size()<<endl;
-
-    // lidar16-R
-    cloud16_R.width = MAX_POINT_SIZE16;			// 预设大一点的空间
-    cloud16_R.height = 1;
-    cloud16_R.is_dense = true;
-    cloud16_R.resize(cloud16_R.width*cloud16_R.height);
-
-    num = 0;
-    PtNumExceed = false;
-    for(int beam = 0; beam < VLP16_BEAM_NUM; beam++)
-    {
-      if(PtNumExceed)
-        break;
-      for(int cnt = 0; cnt < VLP16_BEAM_POINTSIZE; cnt++)
-      {
-        if(pvelodyneParser->lidar16_pointcloud_R[beam][cnt].valid)
-        {
-          cloud16_R.points[num].x = pvelodyneParser->lidar16_pointcloud_R[beam][cnt].x/100.0;
-          cloud16_R.points[num].y = pvelodyneParser->lidar16_pointcloud_R[beam][cnt].y/100.0;
-          cloud16_R.points[num].z = pvelodyneParser->lidar16_pointcloud_R[beam][cnt].z/100.0;
-          cloud16_R.points[num].intensity = pvelodyneParser->lidar16_pointcloud_R[beam][cnt].intensity; // 解析时已经更新过intensity
-          num++;
-          if(num >= MAX_POINT_SIZE16)
-          {
-            PtNumExceed = true;
-            break;
-          }
-        }
-      }
-    }
-    cloud16_R.width = num;
-    cloud16_R.height = 1;
-    cloud16_R.resize(cloud16_R.width*cloud16_R.height);	// 重新调整点云尺寸至真实值
-    cout<<"cloud16_R points size: "<<cloud16_R.points.size()<<endl;
-
     // 将pcl::PointCloud<pcl::PointCloudXYZI>格式转换成pcl::PCLPointCLoud2格式
-    pcl::PCLPointCloud2 tmp_cloud32, tmp_cloud16_L, tmp_cloud16_R;
+    pcl::PCLPointCloud2 tmp_cloud32;
     pcl::toPCLPointCloud2(cloud32, tmp_cloud32);
-    pcl::toPCLPointCloud2(cloud16_L, tmp_cloud16_L);
-    pcl::toPCLPointCloud2(cloud16_R, tmp_cloud16_R);
     // 将pcl::PCLPointCLoud2格式转换成sensor_msgs::PointCloud2格式
-    sensor_msgs::PointCloud2 output32, output16_L, output16_R;
+    sensor_msgs::PointCloud2 output32;
     pcl_conversions::fromPCL(tmp_cloud32, output32);
-    pcl_conversions::fromPCL(tmp_cloud16_L, output16_L);
-    pcl_conversions::fromPCL(tmp_cloud16_R, output16_R);
     // 发布消息
     output32.header.frame_id = "/camera";
-    output16_L.header.frame_id = "/camera";
-    output16_R.header.frame_id = "/camera";
     pub32.publish(output32);
-    pub16_L.publish(output16_L);
-    pub16_R.publish(output16_R);
-
     // spin & sleep
     i+=frameStep;
     ros::spinOnce();
